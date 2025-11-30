@@ -1,0 +1,9 @@
+pandas
+loguru
+torch
+torch_geometric
+matplotlib
+plotly
+scikit-learn
+umap-learn
+openpyxl
