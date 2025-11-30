@@ -1,6 +1,6 @@
-import numpy as np
-
 import random
+
+import numpy as np
 
 
 def gerar_triplets_batch_hard(embeddings, df, genre_encoder):
@@ -14,9 +14,7 @@ def gerar_triplets_batch_hard(embeddings, df, genre_encoder):
     num_livros = len(df)
     triplets = []
     # Cria um mapeamento id -> lista de gêneros (usando a coluna 'id' explicitamente)
-    id_to_generos = {
-        int(row["id_livro"]): set(row["lista_de_generos"]) for _, row in df.iterrows()
-    }
+    id_to_generos = {int(row["id_livro"]): set(row["lista_de_generos"]) for _, row in df.iterrows()}
 
     for book_id in range(num_livros):
         anchor_emb = embeddings_np[book_id]
@@ -81,11 +79,6 @@ def gerar_triplets_hard(edge_index, num_nodes, generos_por_id, num_triplets=2048
 
         anchor_generos = generos_por_id.get(anchor, set())  # Gêneros do livro âncora
 
-        """Para todo nó n na rede, ele só considera negativos que: 
-            - Não estejam ligados diretamente ao anchor.
-            - Não tenham gêneros em comum com o anchor (o & é a interseção de conjuntos).
-            Isso garante que o negativo seja um nó bem diferente do anchor (difícil de confundir).
-            **diferentes o bastante do anchor para ajudar o modelo a aprender a separar coisas distintas."""
         hard_negatives = [
             n
             for n in range(num_nodes)

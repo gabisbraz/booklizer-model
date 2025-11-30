@@ -1,23 +1,23 @@
-import torch
+import networkx as nx
 import plotly.graph_objects as go
 import plotly.io as pio
+import torch
 from torch_geometric.utils import from_networkx
-import networkx as nx
 
 
 def criar_grafo(data, dict_generos, colunas):
-    G = nx.Graph()  # grafo não direcionado
+    g = nx.Graph()  # grafo não direcionado
 
     # Adiciona nós para colunas escalares e listas
     for col in colunas:
         if col in dict_generos:
             # coluna de listas
             for item, id_val in dict_generos[col].items():
-                G.add_node(id_val, label=item, tipo=col)
+                g.add_node(id_val, label=item, tipo=col)
         else:
             # coluna escalar
             for idx, id_val in enumerate(data[f"id_{col}"]):
-                G.add_node(id_val, label=data[col].iloc[idx], tipo=col)
+                g.add_node(id_val, label=data[col].iloc[idx], tipo=col)
 
     # Adiciona arestas
     for idx, row in data.iterrows():
@@ -25,13 +25,13 @@ def criar_grafo(data, dict_generos, colunas):
             if col in dict_generos:
                 # lista de itens
                 for item in row[col]:
-                    G.add_edge(row["id_livro"], dict_generos[col][item])
+                    g.add_edge(row["id_livro"], dict_generos[col][item])
             else:
                 # escalar diferente de livro (assumindo "livro" como principal)
                 if col != "livro":
-                    G.add_edge(row["id_livro"], row[f"id_{col}"])
+                    g.add_edge(row["id_livro"], row[f"id_{col}"])
 
-    return G
+    return g
 
 
 def grafo_para_pyg(grafo, embedding_dim=16, usar_onehot=True):
@@ -137,8 +137,7 @@ def get_plot_grafo(grafo):
             margin=dict(b=20, l=5, r=5, t=40),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        ),
-    )
+    ),)
 
     # Salva como HTML
     pio.write_html(fig, file="plot_grafo.html", auto_open=True)

@@ -1,8 +1,8 @@
-import torch
 import pandas as pd
 import plotly.express as px
+import torch
+from IPython.core.display_functions import display
 from sklearn.metrics.pairwise import cosine_similarity
-from IPython.display import display
 
 
 def calcular_similaridade(model, data, df):
@@ -27,15 +27,11 @@ def recomendar_livros(nome_livro, n_recomendacoes, df, similarity_matrix):
     similares_ordenados = sorted(similaridades, key=lambda x: x[1], reverse=True)
 
     # Pega os top-n (ignorando o próprio livro)
-    recomendados_idx = [i for i, _ in similares_ordenados if i != row_idx][
-        :n_recomendacoes
-    ]
+    recomendados_idx = [i for i, _ in similares_ordenados if i != row_idx][:n_recomendacoes]
 
     # Cria o DataFrame de saída
     livros_recomendados = df.iloc[recomendados_idx].copy()
-    livros_recomendados["similaridade"] = [
-        similarity_matrix[row_idx][i] for i in recomendados_idx
-    ]
+    livros_recomendados["similaridade"] = [similarity_matrix[row_idx][i] for i in recomendados_idx]
 
     # Adiciona o livro de entrada no topo
     livro_base = df.iloc[[row_idx]].copy()
@@ -66,7 +62,6 @@ def mostrar_recomendacoes_interativas(
 
     display(resultado)
 
-    ## --- GRÁFICO DE BARRAS COM SIMILARIDADE ---
     fig_bar = px.bar(
         resultado[::-1],  # Inverte para mostrar o mais similar em cima
         x="similaridade",

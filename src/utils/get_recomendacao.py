@@ -1,15 +1,20 @@
-import umap
+import sys
+from pathlib import Path
+
 import plotly.express as px
-from torch_geometric.data import HeteroData
 import torch
 import torch.nn.functional as F
+import umap
+from torch_geometric.data import HeteroData
+
+DIR_ROOT = str(Path(__file__).parents[1])
+if DIR_ROOT not in sys.path:
+    sys.path.append(DIR_ROOT)
 
 from src.utils.get_graficos_analise_dados import salvar_grafico
 
 
-def recomendar_livros(
-    model, data: HeteroData, livro_nome: str, df, top_k=5, device="cpu"
-):
+def recomendar_livros(model, data: HeteroData, livro_nome: str, df, top_k=5, device="cpu"):
     """
     Retorna os top-k livros mais similares ao livro_nome usando embeddings do modelo.
 
@@ -27,13 +32,13 @@ def recomendar_livros(
 
     livro_emb = embeddings["livro"].to(device)
     livros = df["livro"].unique()
-    livro2id = {l: i for i, l in enumerate(livros)}
-    id2livro = {i: l for i, l in enumerate(livros)}
+    livro2_id = {l: i for i, l in enumerate(livros)}
+    id2_livro = dict(enumerate(livros))
 
-    if livro_nome not in livro2id:
+    if livro_nome not in livro2_id:
         raise ValueError(f"Livro '{livro_nome}' não encontrado no dataset.")
 
-    anchor_id = livro2id[livro_nome]
+    anchor_id = livro2_id[livro_nome]
     anchor_emb = livro_emb[anchor_id].unsqueeze(0)  # shape [1, dim]
 
     # calcula similaridade de cosseno com todos os livros
@@ -44,15 +49,13 @@ def recomendar_livros(
 
     # pega os top-k índices
     topk_ids = torch.topk(sim, k=top_k).indices.tolist()
-    topk_livros = [id2livro[i] for i in topk_ids]
+    topk_livros = [id2_livro[i] for i in topk_ids]
     topk_scores = [sim[i].item() for i in topk_ids]
 
     return list(zip(topk_livros, topk_scores))
 
 
-def plot_umap_recomendacoes_plotly(
-    final_embeddings, df_processed, livro_ancora, recomendacoes
-):
+def plot_umap_recomendacoes_plotly(final_embeddings, df_processed, livro_ancora, recomendacoes):
     """
     Plota UMAP interativo (Plotly) dos embeddings dos livros.
     - Todos os livros em cinza
@@ -60,12 +63,12 @@ def plot_umap_recomendacoes_plotly(
     - Recomendações em vermelho
     """
     reducer = umap.UMAP(random_state=42)
-    emb_2d = reducer.fit_transform(final_embeddings)
+    emb_2_d = reducer.fit_transform(final_embeddings)
 
     # DataFrame auxiliar para plot
     df_plot = df_processed.copy()
-    df_plot["x"] = emb_2d[df_plot["id_livro"], 0]
-    df_plot["y"] = emb_2d[df_plot["id_livro"], 1]
+    df_plot["x"] = emb_2_d[df_plot["id_livro"], 0]
+    df_plot["y"] = emb_2_d[df_plot["id_livro"], 1]
     df_plot["cor"] = "Outros"
 
     # Marca livro âncora
@@ -87,8 +90,7 @@ def plot_umap_recomendacoes_plotly(
             "Outros": "lightgray",
             "Livro Âncora": "blue",
             "Recomendado": "red",
-        },
-    )
+    },)
     fig.update_traces(marker=dict(size=10, line=dict(width=1, color="black")))
     fig.show()
 

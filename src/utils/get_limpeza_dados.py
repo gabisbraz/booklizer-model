@@ -1,4 +1,5 @@
 import ast
+
 import pandas as pd
 from loguru import logger
 
@@ -32,9 +33,10 @@ def limpar_dados(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     logger.info(
-        f"Base carregada com {len(df)} livros únicos, "
-        f"{df['autor'].nunique()} autores e "
-        f"{num_generos} gêneros distintos."
+        "Base carregada com {} livros únicos, {} autores e {} gêneros distintos.",
+        len(df),
+        df["autor"].nunique(),
+        num_generos,
     )
 
     return df

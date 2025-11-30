@@ -1,12 +1,11 @@
 import os
-import pandas as pd
-import ast
 from datetime import date
-from loguru import logger
+
+import pandas as pd
 import plotly.express as px
+from loguru import logger
 from sklearn.feature_extraction.text import CountVectorizer
 
-from .get_limpeza_dados import limpar_dados
 
 
 # ==============================
@@ -17,7 +16,7 @@ def salvar_grafico(fig, nome: str):
     os.makedirs(pasta, exist_ok=True)
     caminho = os.path.join(pasta, f"{nome}.html")
     fig.write_html(caminho, include_plotlyjs="cdn")
-    logger.info(f"Gráfico salvo: {caminho}")
+    logger.info("Gráfico salvo: {}", caminho)
 
 
 # ==============================
@@ -79,9 +78,9 @@ def grafico_autores(df: pd.DataFrame):
 def grafico_palavras(df: pd.DataFrame):
     descriptions = df["Description"].dropna().tolist()
     vectorizer = CountVectorizer(stop_words="english", max_features=30)
-    X = vectorizer.fit_transform(descriptions)
+    x = vectorizer.fit_transform(descriptions)
 
-    word_freq = X.sum(axis=0).A1
+    word_freq = x.sum(axis=0).A1
     words = vectorizer.get_feature_names_out()
 
     df_words = pd.DataFrame({"Palavra": words, "Frequência": word_freq})
@@ -105,21 +104,17 @@ def grafico_palavras(df: pd.DataFrame):
 def grafico_genero_predominante(df: pd.DataFrame):
     df_exploded = df.explode("Genres").reset_index(drop=True)
     df_author_genre = (
-        df_exploded.groupby(["Author", "Genres"])
-        .agg(Num_Livros=("Book", "count"))
-        .reset_index()
+        df_exploded.groupby(["Author", "Genres"]).agg(Num_Livros=("Book", "count")).reset_index()
     )
 
-    df_author_genre["max_por_autor"] = df_author_genre.groupby("Author")[
-        "Num_Livros"
-    ].transform("max")
+    df_author_genre["max_por_autor"] = df_author_genre.groupby("Author")["Num_Livros"].transform(
+        "max"
+    )
     df_predominante = df_author_genre[
         df_author_genre["Num_Livros"] == df_author_genre["max_por_autor"]
     ]
 
-    top_autores = (
-        df.groupby("Author")["Book"].count().sort_values(ascending=False).head(30).index
-    )
+    top_autores = df.groupby("Author")["Book"].count().sort_values(ascending=False).head(30).index
     df_predominante_top = df_predominante[df_predominante["Author"].isin(top_autores)]
 
     # Treemap
@@ -144,8 +139,7 @@ def grafico_genero_predominante(df: pd.DataFrame):
             "Num_Livros": "Número de Livros",
             "Author": "Autor",
             "Genres": "Gênero",
-        },
-    )
+    },)
     fig2.update_layout(yaxis=dict(autorange="reversed"))
     salvar_grafico(fig2, "genero_predominante_bar")
 

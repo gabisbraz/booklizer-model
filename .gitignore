@@ -209,7 +209,9 @@ __marimo__/
 
 .vscode/
 
-data/04_models/
-data/05_analises/
-data/03_load/
-data/02_transform/
+# data/04_models/
+# data/05_analises/
+# data/03_load/
+# data/02_transform/
+
+output/

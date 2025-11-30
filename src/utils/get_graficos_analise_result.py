@@ -1,8 +1,14 @@
+import sys
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import pandas as pd
 import plotly.express as px
 from umap import UMAP
-import matplotlib.pyplot as plt
-from umap import UMAP
-import pandas as pd
+
+DIR_ROOT = str(Path(__file__).parents[1])
+if DIR_ROOT not in sys.path:
+    sys.path.append(DIR_ROOT)
 
 from src.utils.get_graficos_analise_dados import salvar_grafico
 
@@ -29,20 +35,18 @@ def plot_loss_umap(losses, embeddings, df, n_neighbors=15, min_dist=0.1):
     livro_embeddings = embeddings[:num_livros]
 
     reducer = UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=42)
-    embedding_2d = reducer.fit_transform(livro_embeddings)
+    embedding_2_d = reducer.fit_transform(livro_embeddings)
 
     # --- 3. Cor pelo gênero principal ---
     # Para simplificação: pega o primeiro gênero de cada livro
-    generos_principais = [
-        g[0] if len(g) > 0 else "Desconhecido" for g in df["lista_de_generos"]
-    ]
-    unique_genres = list(sorted(set(generos_principais)))
+    generos_principais = [g[0] if len(g) > 0 else "Desconhecido" for g in df["lista_de_generos"]]
+    unique_genres = sorted(set(generos_principais))
     genre_to_color = {g: i for i, g in enumerate(unique_genres)}
     colors = [genre_to_color[g] for g in generos_principais]
 
     plt.figure(figsize=(8, 6))
     scatter = plt.scatter(
-        embedding_2d[:, 0], embedding_2d[:, 1], c=colors, cmap="tab20", s=60, alpha=0.8
+        embedding_2_d[:, 0], embedding_2_d[:, 1], c=colors, cmap="tab20", s=60, alpha=0.8
     )
     plt.title("UMAP das embeddings dos livros")
     plt.xlabel("UMAP1")
@@ -70,23 +74,19 @@ def plot_umap_interativo(embeddings, df, n_neighbors=15, min_dist=0.1):
 
     # UMAP 2D
     reducer = UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=42)
-    embedding_2d = reducer.fit_transform(livro_embeddings)
+    embedding_2_d = reducer.fit_transform(livro_embeddings)
 
     # Gênero principal (primeiro da lista)
-    generos_principais = [
-        g[0] if len(g) > 0 else "Desconhecido" for g in df["lista_de_generos"]
-    ]
+    generos_principais = [g[0] if len(g) > 0 else "Desconhecido" for g in df["lista_de_generos"]]
 
     # Cria DataFrame para Plotly
-    df_plot = pd.DataFrame(
-        {
-            "UMAP1": embedding_2d[:, 0],
-            "UMAP2": embedding_2d[:, 1],
-            "Livro": df["livro"],
-            "Descricao": df["descricao"],
-            "Genero": generos_principais,
-        }
-    )
+    df_plot = pd.DataFrame({
+        "UMAP1": embedding_2_d[:, 0],
+        "UMAP2": embedding_2_d[:, 1],
+        "Livro": df["livro"],
+        "Descricao": df["descricao"],
+        "Genero": generos_principais,
+    })
 
     fig = px.scatter(
         df_plot,

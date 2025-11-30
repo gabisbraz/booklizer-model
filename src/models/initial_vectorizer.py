@@ -1,17 +1,15 @@
-import torch
-from sklearn.preprocessing import LabelEncoder
-import pandas as pd
-from loguru import logger
 import os
-import networkx as nx
-import plotly.graph_objects as go
-import pandas as pd
-from torch_geometric.data import HeteroData
 import random
-import torch
-import networkx as nx
+from collections import defaultdict
+
 import matplotlib.pyplot as plt
-from torch_geometric.utils import to_networkx
+import networkx as nx
+import pandas as pd
+import plotly.graph_objects as go
+import torch
+from loguru import logger
+from sklearn.preprocessing import LabelEncoder
+from torch_geometric.data import HeteroData
 
 
 def data_to_pyg_graph(df: pd.DataFrame) -> HeteroData:
@@ -30,9 +28,9 @@ def data_to_pyg_graph(df: pd.DataFrame) -> HeteroData:
     autores = df["autor"].unique()
     generos = sorted({g for lista in df["lista_de_generos"] for g in lista})
 
-    livro2id = {livro: i for i, livro in enumerate(livros)}
-    autor2id = {autor: i for i, autor in enumerate(autores)}
-    genero2id = {genero: i for i, genero in enumerate(generos)}
+    livro2_id = {livro: i for i, livro in enumerate(livros)}
+    autor2_id = {autor: i for i, autor in enumerate(autores)}
+    genero2_id = {genero: i for i, genero in enumerate(generos)}
 
     # Criar nós
     data["livro"].num_nodes = len(livros)
@@ -40,8 +38,8 @@ def data_to_pyg_graph(df: pd.DataFrame) -> HeteroData:
     data["genero"].num_nodes = len(generos)
 
     # Criar arestas livro-autor
-    livro_autor_src = [livro2id[row["livro"]] for _, row in df.iterrows()]
-    livro_autor_dst = [autor2id[row["autor"]] for _, row in df.iterrows()]
+    livro_autor_src = [livro2_id[row["livro"]] for _, row in df.iterrows()]
+    livro_autor_dst = [autor2_id[row["autor"]] for _, row in df.iterrows()]
 
     data["livro", "escrito_por", "autor"].edge_index = torch.tensor(
         [livro_autor_src, livro_autor_dst], dtype=torch.long
@@ -52,11 +50,11 @@ def data_to_pyg_graph(df: pd.DataFrame) -> HeteroData:
 
     # Criar arestas livro-gênero
     livro_genero_src, livro_genero_dst = [], []
-    for _, row in df.iterrows():
-        l_id = livro2id[row["livro"]]
-        for g in row["lista_de_generos"]:
+    for row in df.itertuples():
+        l_id = livro2_id[row.livro]
+        for g in row.lista_de_generos:
             livro_genero_src.append(l_id)
-            livro_genero_dst.append(genero2id[g])
+            livro_genero_dst.append(genero2_id[g])
 
     data["livro", "tem_genero", "genero"].edge_index = torch.tensor(
         [livro_genero_src, livro_genero_dst], dtype=torch.long
@@ -176,13 +174,6 @@ def get_metricas_grafo(data: HeteroData) -> dict:
     )
 
 
-import os
-import networkx as nx
-import plotly.graph_objects as go
-import pandas as pd
-from torch_geometric.data import HeteroData
-
-
 def plot_grafo_plotly(
     data: HeteroData,
     livro_nome: list[str],
@@ -199,19 +190,19 @@ def plot_grafo_plotly(
     autores = df["autor"].unique()
     generos = sorted({g for lista in df["lista_de_generos"] for g in lista})
 
-    livro2id = {livro: i for i, livro in enumerate(livros)}
-    autor2id = {autor: i for i, autor in enumerate(autores)}
-    genero2id = {genero: i for i, genero in enumerate(generos)}
+    livro2_id = {livro: i for i, livro in enumerate(livros)}
+    autor2_id = {autor: i for i, autor in enumerate(autores)}
+    genero2_id = {genero: i for i, genero in enumerate(generos)}
 
     G = nx.Graph()
 
     # Construir subgrafo apenas dos livros desejados
     for obra in livro_nome:
-        if obra not in livro2id:
+        if obra not in livro2_id:
             print(f"Aviso: Livro '{obra}' não encontrado, ignorando.")
             continue
 
-        livro_id = livro2id[obra]
+        livro_id = livro2_id[obra]
         G.add_node(obra, tipo="livro")
 
         # Autores conectados
@@ -284,8 +275,7 @@ def plot_grafo_plotly(
                 marker=dict(size=30, color=cor, line=dict(width=2, color="black")),
                 name=label,  # legenda
                 showlegend=True,
-            )
-        )
+        ))
 
     # Combinar arestas + nós
     fig = go.Figure(
@@ -294,20 +284,15 @@ def plot_grafo_plotly(
             title=f"Conexões do(s) livro(s): {', '.join(livro_nome)}",
             title_x=0.5,
             showlegend=True,
-            legend=dict(
-                orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5
-            ),
+            legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5),
             margin=dict(l=20, r=20, t=40, b=40),
             xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        ),
-    )
+    ),)
 
     # Criar diretório de saída
     os.makedirs(output_dir, exist_ok=True)
-    filepath = os.path.join(
-        output_dir, f"{'_'.join(livro_nome).replace(' ', '_')}_viz.html"
-    )
+    filepath = os.path.join(output_dir, f"{'_'.join(livro_nome).replace(' ', '_')}_viz.html")
 
     fig.write_html(filepath)
     print(f"✅ Gráfico salvo em: {filepath}")
@@ -346,16 +331,14 @@ def processar_dados(data: pd.DataFrame, colunas: list):
             # coluna de listas (ex: lista_de_generos)
             all_items = [item for sublist in data[col] for item in sublist]
             unique_items = sorted(set(all_items))
-            dict_generos[col] = {
-                item: i + offset for i, item in enumerate(unique_items)
-            }
+            dict_generos[col] = {item: i + offset for i, item in enumerate(unique_items)}
             offset += len(unique_items)
-        else:
-            # coluna escalar (ex: livro, autor)
-            le = LabelEncoder()
-            data[f"id_{col}"] = le.fit_transform(data[col]) + offset
-            offset += len(le.classes_)
-            encoders[col] = le
+
+            continue
+        le = LabelEncoder()
+        data[f"id_{col}"] = le.fit_transform(data[col]) + offset
+        offset += len(le.classes_)
+        encoders[col] = le
 
     return data, encoders, dict_generos
 
@@ -380,28 +363,21 @@ def gerar_embeddings_com_autor(
     )
 
     # --- Livros ---
-    for _, row in df.iterrows():
-        book_id = int(row["id"])
-        author_id = int(author_encoder[row["autor"]])
+    for row in df.itertuples():
+        book_id = int(row.id)
+        author_id = int(author_encoder[row.autor])
         # Exemplo simples: coloca 1 no índice do autor dentro do vetor do livro
         all_vectors[book_id, author_id % embedding_dim] = 1.0
 
     # --- Gêneros ---
-    for _, gid in genre_encoder.items():
+    for gid in genre_encoder.values():
         all_vectors[gid] = torch.zeros(num_features)  # podem ficar zeros
 
     # --- Autores ---
-    for author, aid in author_encoder.items():
-        all_vectors[aid + num_books + num_genres, aid % embedding_dim] = (
-            1.0  # posição global
-        )
+    for aid in author_encoder.values():
+        all_vectors[aid + num_books + num_genres, aid % embedding_dim] = 1.0  # posição global
 
     return all_vectors
-
-
-import torch
-from torch_geometric.data import HeteroData
-from collections import defaultdict
 
 
 def full_graph_analysis(data: HeteroData):
@@ -422,7 +398,7 @@ def full_graph_analysis(data: HeteroData):
     print("\n3️⃣ Estatísticas de grau dos nós por tipo:")
     node_degrees = defaultdict(list)
     for edge_type in data.edge_types:
-        src_type, rel, dst_type = edge_type
+        src_type, _, dst_type = edge_type
         edge_index = data[edge_type].edge_index
         for src, dst in edge_index.t().tolist():
             node_degrees[src_type].append(src)
@@ -437,9 +413,7 @@ def full_graph_analysis(data: HeteroData):
                 sum(degrees.count(i) for i in range(data[node_type].num_nodes))
                 / data[node_type].num_nodes
             )
-            print(
-                f"  {node_type}: grau mínimo={min_deg}, máximo={max_deg}, médio={avg_deg:.2f}"
-            )
+            print(f"  {node_type}: grau mínimo={min_deg}, máximo={max_deg}, médio={avg_deg:.2f}")
         else:
             print(f"  {node_type}: sem arestas")
 
@@ -452,9 +426,7 @@ def full_graph_analysis(data: HeteroData):
 
     # 5. Estatísticas gerais
     total_nodes = sum(data[node_type].num_nodes for node_type in data.node_types)
-    total_edges = sum(
-        data[edge_type].edge_index.size(1) for edge_type in data.edge_types
-    )
+    total_edges = sum(data[edge_type].edge_index.size(1) for edge_type in data.edge_types)
     approx_density = total_edges / (
         total_nodes * (total_nodes - 1)
     )  # simples, para hetero pode ser interpretativa
@@ -471,4 +443,3 @@ def full_graph_analysis(data: HeteroData):
 
 
 # Uso
-# full_graph_analysis(data)
